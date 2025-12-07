@@ -1,0 +1,7 @@
+python-dotenv
+elasticsearch
+sentence-transformers
+pymupdf
+requests
+pdfplumber
+openai
