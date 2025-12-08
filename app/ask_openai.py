@@ -1,5 +1,5 @@
-from elastic_client import get_es
-from embedder import embed_texts
+from .elastic_client import get_es
+from .embedder import embed_texts
 import numpy as np
 from openai import OpenAI
 import os

@@ -1,7 +1,13 @@
-from elastic_client import get_es
-from embedder import embed_texts
+from .elastic_client import get_es
+from .embedder import embed_texts
 
-def ingest_to_es(pages):
+def ingest_to_es(chunks):
+    """
+    Ingest text chunks to Elasticsearch with embeddings.
+    
+    Args:
+        chunks: List of text chunks to index
+    """
     es = get_es()
 
     if not es.indices.exists(index="rag_docs"):
@@ -14,9 +20,9 @@ def ingest_to_es(pages):
             }
         })
 
-    vectors = embed_texts(pages)
+    vectors = embed_texts(chunks)
 
-    for i, (text, vector) in enumerate(zip(pages, vectors)):
+    for i, (text, vector) in enumerate(zip(chunks, vectors)):
         es.index(index="rag_docs", id=i, document={
             "text": text,
             "embedding": vector.tolist(),
