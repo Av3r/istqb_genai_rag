@@ -10,15 +10,17 @@ def ingest_to_es(chunks):
     """
     es = get_es()
 
-    if not es.indices.exists(index="rag_docs"):
-        es.indices.create(index="rag_docs", body={
-            "mappings": {
+    # Create index if it doesn't exist
+    try:
+        if not es.indices.exists(index="rag_docs"):
+            es.indices.create(index="rag_docs", mappings={
                 "properties": {
                     "text": {"type": "text"},
                     "embedding": {"type": "dense_vector", "dims": 384}
                 }
-            }
-        })
+            })
+    except Exception as e:
+        print(f"Warning: Could not check/create index: {e}")
 
     vectors = embed_texts(chunks)
 

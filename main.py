@@ -1,5 +1,6 @@
 from app.chunker import chunk_text, chunk_text_with_overlap, chunk_text_with_overlap_new
 from app.cleaner_pdf import clean_pages
+from app.embedder import embed_single
 from app.ingest import ingest_to_es
 from app.loader_pdf import load_pdf
 
@@ -27,19 +28,12 @@ if __name__ == "__main__":
     full_cleaned_text = "\n".join(cleaned)
 
     #print(full_cleaned_text)
+
+    #test embedding single query
+    test_embed = embed_single("Which of the following statements BEST describes the relation between multimodal LLMs and vision-language models?")
+    print(test_embed)
     
-    chunks = chunk_text_with_overlap_new(full_cleaned_text)
+    #chunks = chunk_text_with_overlap_new(full_cleaned_text)
 
-    print(f'[INFO] tests chunk: {chunks[0]}')
-    print(f'[INFO] tests chunk: {chunks[1]}')
-    print(f'[INFO] tests chunk: {chunks[2]}')
-    print(f'[INFO] tests chunk: {chunks[3]}')
-    print(f'[INFO] tests chunk: {chunks[4]}')
-    print(f'[INFO] tests chunk: {chunks[5]}')
-    print(f'[INFO] tests chunk: {chunks[6]}')
-
+    #create embeddings and ingest to ES
     #ingest_to_es(chunks)
-    
-
-    #print(f"\n[INFO] Cleaned pages: {len(cleaned)}")
-    #print(cleaned[0])
