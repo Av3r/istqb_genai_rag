@@ -1,3 +1,5 @@
+from typing import List
+
 def chunk_text(texts, max_chars=1500):
     """
     Split pages into chunks respecting page boundaries.
@@ -25,26 +27,37 @@ def chunk_text(texts, max_chars=1500):
     return chunks
 
 
-def chunk_text_with_overlap(texts, max_chars=1500, overlap=200):
+def chunk_text_with_overlap(pages: List[str], max_chars: int = 800, overlap: int = 150) -> List[str]:
+    """
+    Hybrid chunker:
+    - First join pages into text segments by paragraph where possible.
+    - If paragraph longer than max_chars, split by sliding window with overlap.
+    Returns list of chunks.
+    """
     chunks = []
-
-    for page in texts:
-        page = page.strip()
-        start = 0
-
-        while start < len(page):
-            end = start + max_chars
-            chunk = page[start:end]
-
-            chunks.append(chunk.strip())
-
-            # overlap for next chunk
-            start = end - overlap
-
+    for page in pages:
+        # split into paragraphs by blank line or long newline runs
+        paras = [p.strip() for p in page.split("\n\n") if p.strip()]
+        for para in paras:
+            if len(para) <= max_chars:
+                # try to append to last chunk if space
+                if chunks and len(chunks[-1]) + len(para) + 1 <= max_chars:
+                    chunks[-1] = chunks[-1] + "\n\n" + para
+                else:
+                    chunks.append(para)
+            else:
+                # fallback sliding window on long paragraph
+                start = 0
+                while start < len(para):
+                    end = start + max_chars
+                    chunk = para[start:end].strip()
+                    if chunk:
+                        chunks.append(chunk)
+                    start = max(end - overlap, start + 1)
     return chunks
 
 
-def chunk_text_with_overlap_new(full_text, max_chars=1500, overlap=200):
+def chunk_text_with_overlap_new(full_text, max_chars=1000, overlap=150):
     """
     Split text into overlapping chunks across entire document.
     Chunks can span multiple pages, with overlap between consecutive chunks.
