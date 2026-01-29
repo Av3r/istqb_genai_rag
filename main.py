@@ -26,7 +26,10 @@ def run_ingest():
 
 if __name__ == "__main__":
 
-    veryfy = verify_top_k("Which of the following statements BEST describes the relation between multimodal LLMs and vision-language models?", k=5)
+    #veryfy = verify_top_k("Which of the following statements BEST describes the relation between multimodal LLMs and vision-language models?", k=5)
+    veryfy = verify_top_k("test czy po polsku cos ogarnie?", k=5)
+
+    #veryfy =embed_single("test czy po polsku cos ogarnie?")
     
     print(veryfy)
 
