@@ -1,19 +1,28 @@
+from typing import List
+import textwrap
+
+from openai import OpenAI
+
 from app.embedder import embed_single
 from app.retrieve import retrieve_top_k
 from app.score_filter import filter_low_scores
-from openai import OpenAI
-import textwrap
+from app.config import Settings
 
-client = OpenAI()
 
-def build_prompt(question: str, contexts: list[str]) -> str:
+class RAGService:
+    """Encapsulates RAG logic and dependencies.
+
+    Use dependency injection to pass an OpenAI client and settings.
     """
-    Creates a prompt for RAG.
-    If context is missing, instruct model to answer 'INSUFFICIENT DATA'.
-    """
-    joined_contexts = "\n\n---\n\n".join(contexts)
 
-    prompt = f"""
+    def __init__(self, openai_client: OpenAI, settings: Settings):
+        self.client = openai_client
+        self.settings = settings
+
+    def build_prompt(self, question: str, contexts: List[str]) -> str:
+        joined_contexts = "\n\n---\n\n".join(contexts)
+
+        prompt = f"""
 You are an exam assistant. Use ONLY the provided context to answer.
 If the context is insufficient, answer exactly: "INSUFFICIENT DATA".
 
@@ -26,31 +35,46 @@ QUESTION:
 Answer clearly.
 """.strip()
 
-    return textwrap.dedent(prompt)
+        return textwrap.dedent(prompt)
 
-def rag_answer(question: str, top_k=5, min_score=1.05):
-    """
-    Full RAG pipeline:
-    1. Embed question
-    2. Retrieve top K chunks
-    3. Filter weak scores
-    4. Send to LLM
-    """
-    query_vec = embed_single(question)
-    results = retrieve_top_k(query_vec, k=top_k)
+    def answer(self, question: str) -> str:
+        query_vec = embed_single(question)
+        results = retrieve_top_k(query_vec, k=self.settings.RAG_TOP_K)
 
-    filtered = filter_low_scores(results, min_score=min_score)
+        filtered = filter_low_scores(results, min_score=self.settings.RAG_MIN_SCORE)
+        if filtered is None:
+            return "INSUFFICIENT DATA (no good match in Elasticsearch)."
 
-    if filtered is None:
-        return "INSUFFICIENT DATA (no good match in Elasticsearch)."
+        contexts = [r["text"] for r in filtered]
+        prompt = self.build_prompt(question, contexts)
 
-    contexts = [r["text"] for r in filtered]
+        resp = self.client.chat.completions.create(
+            model=self.settings.OPENAI_MODEL,
+            messages=[{"role": "user", "content": prompt}]
+        )
 
-    prompt = build_prompt(question, contexts)
+        choice = resp.choices[0]
+        msg = getattr(choice, "message", None) or (choice.get("message") if isinstance(choice, dict) else None)
+        if msg is None:
+            return str(resp)
 
-    completion = client.chat.completions.create(
-        model="gpt-4.1-mini",
-        messages=[{"role": "user", "content": prompt}]
-    )
+        content = getattr(msg, "content", None)
+        if content is None and isinstance(msg, dict):
+            content = msg.get("content")
+        return content
 
-    return completion.choices[0].message["content"]
+
+# convenience factory for backwards compatibility
+def rag_answer(question: str, openai_client: OpenAI = None, settings: Settings | None = None):
+    """Simple helper: create client/settings if not provided and return answer."""
+    import os
+    from openai import OpenAI as _OpenAI
+
+    if settings is None:
+        settings = Settings()
+
+    if openai_client is None:
+        openai_client = _OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+
+    service = RAGService(openai_client, settings)
+    return service.answer(question)
