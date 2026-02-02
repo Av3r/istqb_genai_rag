@@ -23,7 +23,7 @@ patterns_to_remove = [
     ]
   
 def run_ingest():
-    pages = load_pdf("syllabus_genai.pdf")
+    pages = load_pdf("data/syllabus_genai.pdf")
     cleaned = clean_pages(pages, patterns_to_remove)
     full_cleaned_text = "\n".join(cleaned)
     chunks = chunk_text_with_overlap_new(full_cleaned_text)
@@ -73,7 +73,7 @@ Select ONE option."""
 
 
     # #load pdf
-    # pages = load_pdf("syllabus_genai.pdf")
+    # pages = load_pdf("data/syllabus_genai.pdf")
     # #print(f"\n[INFO] Pages loaded: {len(pages)}")
     # #print(pages[15])
 
