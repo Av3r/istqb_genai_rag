@@ -5,3 +5,4 @@ pymupdf
 requests
 pdfplumber
 openai
+streamlit
