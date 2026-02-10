@@ -22,12 +22,21 @@ patterns_to_remove = [
         r"^[•o]\s*",  # bullet points (• and o) at start of line
     ]
   
-def run_ingest():
-    pages = load_pdf("data/syllabus_genai.pdf")
+
+
+def create_vector_db(file_path: str = "data/syllabus_genai.pdf"):
+    """Create the vector DB (Elasticsearch index) from a PDF.
+
+    Steps: load PDF -> clean pages -> chunk text -> ingest embeddings to ES.
+    Returns number of chunks indexed.
+    """
+    pages = load_pdf(file_path)
     cleaned = clean_pages(pages, patterns_to_remove)
     full_cleaned_text = "\n".join(cleaned)
     chunks = chunk_text_with_overlap_new(full_cleaned_text)
     ingest_to_es(chunks)
+    print(f"[INFO] Indexed {len(chunks)} chunks into Elasticsearch.")
+    return len(chunks)
 
 
 if __name__ == "__main__":
@@ -37,6 +46,11 @@ if __name__ == "__main__":
     client = OpenAI(api_key=settings.OPENAI_API_KEY)
     rag_service = RAGService(client, settings)
 
+    # First step: create vector DB from PDF (only need to do this once, or when PDF changes)
+    #create_vector_db()
+
+
+    # Test embedding a single query (for search) - this is what happens inside RAGService when you ask a question
     # inspect top-k retrieval
     veryfy = verify_top_k("test czy po polsku cos ogarnie?", k=settings.RAG_TOP_K)
     print(veryfy)
@@ -70,29 +84,3 @@ Select ONE option."""
 # c) Constraints
 # d) Output format
 # Select ONE option."""  ##odp B
-
-
-    # #load pdf
-    # pages = load_pdf("data/syllabus_genai.pdf")
-    # #print(f"\n[INFO] Pages loaded: {len(pages)}")
-    # #print(pages[15])
-
-    # #clean pdf
-    # cleaned = clean_pages(pages, patterns_to_remove)
-
-    # #join all cleaned pages into one continuous text
-    # full_cleaned_text = "\n".join(cleaned)
-
-
-    # #test embedding single query
-    # #test_embed = embed_single("Which of the following statements BEST describes the relation between multimodal LLMs and vision-language models?")
-    # #print(test_embed)
-    
-    # chunks = chunk_text_with_overlap_new(full_cleaned_text)
-
-    # print(f'[info] total chunks: {len(chunks)}')
-    # # print(f'[info] chunk {chunks[0]}')
-    # # print(f'[info] chunk {chunks[1]}')
-
-    # #create embeddings and ingest to ES
-    # ingest_to_es(chunks)
